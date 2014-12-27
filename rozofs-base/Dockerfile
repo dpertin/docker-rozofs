@@ -17,3 +17,6 @@ RUN wget -O - http://54.225.196.202/debian/devel@rozofs.com.gpg.key | apt-key ad
 #RUN echo deb  http://dl.rozofs.org/debian/master $(lsb_release -sc) main | tee /etc/apt/sources.list.d/rozofs.list
 RUN echo deb  http://54.225.196.202/debian/master $(lsb_release -sc) main | tee /etc/apt/sources.list.d/rozofs.list
 
+# Install RozoFS manager (optionally) required for all nodes
+RUN apt-get -y update && apt-get install -y \
+    rozofs-manager*
