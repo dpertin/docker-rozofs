@@ -10,16 +10,19 @@ MAINTAINER denaitre, dimitri.pertin@univ-nantes.fr
 
 # Make sure the package repository is up to date
 RUN apt-get -y update
-RUN apt-get -y updade
+RUN apt-get -y upgrade
 
 # Install wget
-RUN apt-get install -y wget
+RUN apt-get install -y \
+    wget \
+    lsb-release
 
 # Install the release key
-RUN wget -O - http://dl.rozofs.org/debian/devel@rozofs.com.gpg.key | apt-key add -
+#RUN wget -O - http://dl.rozofs.org/debian/devel@rozofs.com.gpg.key | apt-key add -
+RUN wget -O - http://54.225.196.202/debian/devel@rozofs.com.gpg.key | apt-key add -
 
 # Add the release package
-RUN echo deb http://dl.rozofs.org/debian/master $(lsb_release -sc) main | tee /etc/apt/sources.list.d/rozofs.list
+RUN echo deb  http://54.225.196.202/debian/master $(lsb_release -sc) main | tee /etc/apt/sources.list.d/rozofs.list
 
 # Update the package repository
 RUN apt-get -y update
