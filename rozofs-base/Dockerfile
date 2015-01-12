@@ -20,3 +20,5 @@ RUN echo deb  http://54.225.196.202/debian/master $(lsb_release -sc) main | tee 
 # Install RozoFS manager (optionally) required for all nodes
 RUN apt-get -y update && apt-get install -y \
     rozofs-manager*
+
+CMD tail -f /var/log/dmesg
