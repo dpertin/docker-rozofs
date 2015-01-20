@@ -59,8 +59,13 @@ echo
 echo "Bringing up the exportd node:"
 echo
 
+name="rozofs-exportd"
+
 docker run -P \
            ${LINK_ARG[@]} \
-           --name "rozofs-exportd" \
+           --name ${name} \
            -d denaitre/rozofs-exportd # > dev/null 2>&1
 echo "Successfully brought up [rozofs-exportd]"
+
+export DOCKER_ROZOFS_EXPORTD_IP=$(docker inspect -f \
+    '{{ .NetworkSettings.IPAddress }}' ${name})

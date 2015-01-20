@@ -12,15 +12,12 @@
 name_exportd=${name_exportd:="rozofs-exportd"}
 path_exportd=${path_exportd:="/srv/rozofs/exports/"}
 
-ip_exportd=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' \
-    ${name_exportd})
+DOCKER_ROZOFS_EXPORTD_IP=$(docker inspect -f \
+    '{{ .NetworkSettings.IPAddress }}' ${name_exportd})
 
 echo
 echo "Trying to mount the remote RozoFS volume..."
 echo
 
-rozofsmount -H "${ip_exportd}" -E "${path_exportd}" "$1"
+rozofsmount -H "${DOCKER_ROZOFS_EXPORTD_IP}" -E "${path_exportd}" "$1"
 
-echo
-echo "The remote RozoFS volume should be mounted"
-echo
