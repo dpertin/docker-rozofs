@@ -1,10 +1,10 @@
-.PHONY: all build cluster rozofs-base rozofs-exportd rozofs-storaged \
+.PHONY: all images rozofs-base rozofs-exportd rozofs-storaged \
 	rozofs-rozofsmount rozofs-allinone start-cluster mount-cluster add-client \
 	stop-cluster
 
-all: stop-cluster build cluster start-cluster
+all: stop-cluster images start-cluster
 
-build cluster: rozofs-base rozofs-exportd rozofs-storaged rozofs-rozofsmount
+images: rozofs-base rozofs-exportd rozofs-storaged rozofs-rozofsmount
 
 rozofs-base:
 	docker build -t "denaitre/rozofs-base" rozofs-base/
