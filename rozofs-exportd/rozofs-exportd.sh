@@ -5,7 +5,10 @@ DOCKER_ROZOFS_LAYOUT=${DOCKER_ROZOFS_LAYOUT:=0}
 
 function getHostIP()
 {
-    local ip=$(getent hosts "$1" | cut -d " " -f1)
+    local ip=$(ping -q -c 1 "$1" \
+        | grep PING \
+        | sed -e "s/).*//" \
+        | sed -e "s/.*(//")
     echo "${ip}"
 }
 
