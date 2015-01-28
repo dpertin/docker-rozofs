@@ -6,7 +6,6 @@
 #   * rozofs-storaged       (four by default)
 #   * rozofs-rozofsmount    (optional)
 
-
 function start_exportd()
 {
     echo
@@ -31,14 +30,17 @@ function getIPbyContainerName()
     if local ip=$(docker inspect -f '{{ .NetworkSettings.IPAddress }}' $1);
     then
         echo "${ip}"
+        return 0
     else
-        >&2 echo "[X] Impossible to find IP address of $1"
+        #>&2 echo "[X] Impossible to find IP address of $1"
+        return 1
     fi
 }
 
 function usage()
 {
     echo "Usage: $1 options:"
+    echo "      -d|--display            - display the storage configuration"
     echo "      -h|--help               - display this help"
     echo "      -l|--layout <{0,1,2}>   - set the RozoFS layout"
     echo "      -s|--size <size>        - set the number of storage nodes"
@@ -52,7 +54,10 @@ if env | grep -q "DOCKER_ROZOFS_DEBUG"; then
     set -x
 fi
 
-OPTS=$(getopt -o hl:s:v: -l help,layout:,size:,volume: -n $0 -- "$@")
+# fetch exportd IP address
+exportdIP=$(getIPbyContainerName "rozofs-exportd")
+
+OPTS=$(getopt -o dhl:s:v: -l display,help,layout:,size:,volume: -n $0 -- "$@")
 if [ $? != 0 ]; then
     exit 1
 fi
@@ -62,6 +67,12 @@ eval set -- "$OPTS"
 # extract options and their arguments into variables.
 while true ; do
     case "$1" in
+        -d|--display)
+            if [ ! -z ${exportdIP} ]; then
+                docker exec rozofs-exportd \
+                    rozo volume list --exportd ${exportdIP};
+            fi
+            exit 0;;
         -h|--help)
             usage $0
             break;;
