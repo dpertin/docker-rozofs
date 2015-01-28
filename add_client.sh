@@ -9,10 +9,14 @@ if env | grep -q "DOCKER_ROZOFS_DEBUG"; then
     set -x
 fi
 
-i=$(docker ps -a | egrep "rozofs-client.." | wc -l)
+highestClientID=$(docker ps -a \
+    | egrep "rozofs-client.." \
+    | wc -l)
 
-docker run -e "DOCKER_ROZOFS_EXPORTD_IP=$(docker inspect -f \
-    '{{ .NetworkSettings.IPAddress }}' "rozofs-exportd")" \
+exportdIP=$(docker inspect -f \
+    '{{ .NetworkSettings.IPAddress }}' "rozofs-exportd")
+
+docker run -e "DOCKER_ROZOFS_EXPORTD_IP=${exportdIP}" \
            --name "rozofs-client$(printf '%02g' $(( $i + 1 )))" \
            --privileged \
            -d "denaitre/rozofs-rozofsmount"

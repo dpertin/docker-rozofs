@@ -10,7 +10,7 @@
 : ${1?"Usage: $0 MOUNTPOINT_PATH"}
 
 name_exportd=${name_exportd:="rozofs-exportd"}
-path_exportd=${path_exportd:="/srv/rozofs/exports/"}
+path_exportd=${path_exportd:="/srv/rozofs/exports/export_1"}
 
 DOCKER_ROZOFS_EXPORTD_IP=$(docker inspect -f \
     '{{ .NetworkSettings.IPAddress }}' ${name_exportd})

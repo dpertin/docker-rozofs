@@ -7,10 +7,6 @@
 FROM denaitre/rozofs-base
 MAINTAINER denaitre, dimitri.pertin@univ-nantes.fr
 
-# Avoid warning during packet installations
-ENV DEBIAN_FRONTEND noninteractive
-RUN echo "#!/bin/sh\nexit 0" > /usr/sbin/policy-rc.d
-
 # Installation:
 # Make sure the package repository is up to date before installing storaged
 RUN apt-get -y update && apt-get install -y \
