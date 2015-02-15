@@ -1,10 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script relies on docker to starts the RozoFS cluster based on the
 # following containers:
 #   * rozofs-exportd        (one by default)
 #   * rozofs-storaged       (four by default)
 #   * rozofs-rozofsmount    (optional)
+
+set -e
+
+if env | grep -q "DOCKER_ROZOFS_DEBUG"; then
+    set -x
+fi
 
 function start_exportd()
 {
@@ -14,15 +20,24 @@ function start_exportd()
 
     name="rozofs-exportd"
 
-    docker run -e "DOCKER_ROZOFS_LAYOUT"=${DOCKER_ROZOFS_LAYOUT} \
-               -e "DOCKER_ROZOFS_CLUSTER_SIZE"=${DOCKER_ROZOFS_CLUSTER_SIZE} \
-               -e "DOCKER_ROZOFS_NAME_LIST"=${NAME_LIST} \
-               -P \
+    docker run -P \
                ${LINK_ARG[@]} \
                --name ${name} \
                -d denaitre/rozofs-exportd > /dev/null 2>&1
+               #--privileged \
+
+    exportdIP=$(getIPbyContainerName "rozofs-exportd")
     
     echo "Successfully brought up [rozofs-exportd]"
+}
+
+function restart_exportd()
+{
+    # Reload new configuration file
+    docker exec rozofs-exportd exportd
+    killall exportd
+    #docker exec rozofs-exportd kill `cat /var/run/exportd.pid`
+    docker exec rozofs-exportd exportd
 }
 
 function getIPbyContainerName()
@@ -48,11 +63,6 @@ function usage()
     exit 1
 }
 
-set -e
-
-if env | grep -q "DOCKER_ROZOFS_DEBUG"; then
-    set -x
-fi
 
 # fetch exportd IP address
 exportdIP=$(getIPbyContainerName "rozofs-exportd")
@@ -94,11 +104,11 @@ done
 #   * DOCKER_ROZOFS_LAYOUT:       the layout set
 DOCKER_ROZOFS_CLUSTER_SIZE=${DOCKER_ROZOFS_CLUSTER_SIZE:=4}
 DOCKER_ROZOFS_LAYOUT=${DOCKER_ROZOFS_LAYOUT:=0}
-DOCKER_ROZOFS_VID=${DOCKER_ROZOFS_VID:=1}
 
 min_storage=$(( ${DOCKER_ROZOFS_LAYOUT}+1 * 4))
 if (( ${DOCKER_ROZOFS_CLUSTER_SIZE} < ${min_storage} )); then
-    echo -E "At least ${min_storage} storage nodes are required for layout ${DOCKER_ROZOFS_LAYOUT}"
+    echo -E "At least ${min_storage} storage nodes are required \
+        for layout ${DOCKER_ROZOFS_LAYOUT}"
     exit 1
 fi
 
@@ -128,16 +138,14 @@ if res=$(docker ps \
 fi
 
 # Start rozofs-storaged containers
-for ROZOFS_SID in $(seq 1 "${DOCKER_ROZOFS_CLUSTER_SIZE}"); do
+for ROZOFS_SID in $(eval echo "{1..${DOCKER_ROZOFS_CLUSTER_SIZE}}"); do
     
     # DOCKER_SID != ROZOFS_SID
     DOCKER_SID=$(printf %02g $(( ${ROZOFS_SID} + ${highestDockerSID} )) )
     name="rozofs-storaged${DOCKER_SID}"
     
     # CID is kept in order to retrieve containers IP address (or not...)
-    CID=$(docker run -e "DOCKER_ROZOFS_SID"=${ROZOFS_SID} \
-               -e "DOCKER_ROZOFS_CID"="" \
-               -P \
+    CID=$(docker run -P \
                --name ${name} \
                -d denaitre/rozofs-storaged )
                 # > /dev/null 2>&1)
@@ -152,13 +160,19 @@ for ROZOFS_SID in $(seq 1 "${DOCKER_ROZOFS_CLUSTER_SIZE}"); do
 done
 
 # If no rozofs-exportd container exists, create it!
-if ! docker ps | grep rozofs-exportd; then
+if ! docker ps | grep rozofs-exportd >/dev/null; then
     start_exportd
 fi
 
 echo
 echo ">>> Adding rozofs-storaged containers in the cluster configuration"
 echo
+
+# stop exportd
+#rozo node stop -r exportd -E ${exportdIP}
+docker exec rozofs-exportd rozo node stop -r exportd -E localhost
+#docker exec rozofs-exportd 'kill $(cat /var/run/exportd.pid)'
+#docker exec rozofs-exportd 'kill $( < /var/run/exportd.pid)'
 
 # Configure rozofs-exportd to add storaged containers in the cluster
 # we use `rozo agent` to manage it easily
@@ -168,14 +182,15 @@ docker exec rozofs-exportd \
         --layout ${DOCKER_ROZOFS_LAYOUT} \
         --exportd localhost
 
-docker exec rozofs-exportd \
-    rozo export create ${DOCKER_ROZOFS_VID} \
-        --exportd localhost
+# If a new volume is detected, export it !
+if [ -z ${DOCKER_ROZOFS_VID} ]; then
+    numberExports=$(rozo export list -E $(getIPbyContainerName "rozofs-exportd") | grep "EXPORT " | wc -l)
+    docker exec rozofs-exportd \
+        rozo export create $(( ${numberExports} + 1 )) \
+            --exportd localhost
+fi
 
-docker exec rozofs-exportd \
-    rozo node start \
-        --roles exportd \
-        --exportd localhost
+docker exec rozofs-exportd exportd
 
 echo "Successfully configure the storage volume"
 echo
