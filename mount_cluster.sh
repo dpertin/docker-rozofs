@@ -7,7 +7,11 @@
 # It expects the user to give the mount path as a parameter. The following
 # returns $1 if the user gives a non-null parameter, or prints the message and
 # aborts the script.
-: ${1?"Usage: $0 MOUNTPOINT_PATH"}
+: ${1?"Usage: $0 <MOUNTPOINT_PATH> (<ROZOFS_VID>)"}
+
+if [ ! -z "$2" ]; then
+    path_exportd="/srv/rozofs/exports/export_$2"
+fi
 
 name_exportd=${name_exportd:="rozofs-exportd"}
 path_exportd=${path_exportd:="/srv/rozofs/exports/export_1"}
